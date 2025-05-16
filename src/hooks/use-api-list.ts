@@ -9,6 +9,7 @@ const useApiList = () => {
 
   const loadData = () => {
     setLoading(true);
+    setData([]);
     fetchApis()
       .then(res => {
         const parsed = Object.entries(res).map(([name, api]) => {
