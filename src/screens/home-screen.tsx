@@ -1,15 +1,6 @@
 import React, {useEffect, useState} from 'react';
-import {
-  View,
-  FlatList,
-  TextInput,
-  ActivityIndicator,
-  Text,
-  StyleSheet,
-} from 'react-native';
-import {fetchApis} from '../services/api-service';
+import {View, FlatList, TextInput, Text, StyleSheet} from 'react-native';
 import {ApiListItem} from '../components/api-list-item';
-import {IApiList, IApiVersion} from '../interfaces';
 import {useNavigation} from '@react-navigation/native';
 import {StackNavigationProp} from '@react-navigation/stack';
 import {RootStackParamList} from '../navigation/app-navigator';
@@ -17,36 +8,14 @@ import {
   widthPercentageToDP as wp,
   heightPercentageToDP as hp,
 } from 'react-native-responsive-screen';
+import useApiList from '../hooks/use-api-list';
 
 export const HomeScreen = () => {
-  const [data, setData] = useState<{name: string; version: IApiVersion}[]>([]);
+  const {data, error, loading, loadData} = useApiList();
   const [filtered, setFiltered] = useState<typeof data>([]);
   const [search, setSearch] = useState('');
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
 
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
-
-  useEffect(() => {
-    const loadApis = async () => {
-      try {
-        const apiData: IApiList = await fetchApis();
-        const parsed = Object.entries(apiData).map(([name, api]) => {
-          const versionKey = api.preferred || Object.keys(api.versions)[0];
-          const version = api.versions[versionKey];
-          return {name, version};
-        });
-        setData(parsed);
-        setFiltered(parsed);
-      } catch (e) {
-        setError('Failed to fetch APIs.');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadApis();
-  }, []);
 
   const handleSearch = (text: string) => {
     setSearch(text);
@@ -56,7 +25,11 @@ export const HomeScreen = () => {
     setFiltered(filtered);
   };
 
-  if (loading) return <ActivityIndicator style={{flex: 1}} />;
+  useEffect(() => {
+    setFiltered(data);
+    return () => {};
+  }, [data.length]);
+
   if (error) return <Text style={styles.errorText}>{error}</Text>;
 
   return (
@@ -70,6 +43,8 @@ export const HomeScreen = () => {
       <FlatList
         data={filtered}
         keyExtractor={item => item.name}
+        refreshing={loading}
+        onRefresh={loadData}
         renderItem={({item}) => (
           <ApiListItem
             title={item.name}
